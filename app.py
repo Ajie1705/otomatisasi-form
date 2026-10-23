@@ -96,7 +96,7 @@ def kirim_data_grup(grup_pilihan):
 
     for pengguna in daftar_pengguna:
         payload = {
-             "entry.1146271895_year": str(hari_ini.year),
+        "entry.1146271895_year": str(hari_ini.year),
         "entry.1146271895_month": str(hari_ini.month),
         "entry.1146271895_day": str(hari_ini.day),
         
