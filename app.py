@@ -117,7 +117,7 @@ def kirim_data_grup(grup_pilihan):
         
         "entry.1738409079": "Ya",
         
-        "entry.867285848": "Saya menyatakan bahwa data yang saya isi pada form ini benar   sesuai kondisi kesehatan saya saat ini.",
+        "entry.867285848": "Saya menyatakan bahwa data yang saya isi pada form ini benar sesuai kondisi kesehatan saya saat ini.",
         
         "pageHistory": "0,1,2,3,4",
         "fbzx": "-3336482920283632141"
