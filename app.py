@@ -9,7 +9,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 # --- KONFIGURASI (SESUAIKAN USERNAME & REPO ANDA) ---
-VERSI_LOKAL = "1.0.1"
+VERSI_LOKAL = "1.1.1"
 URL_VERSION_JSON = "https://raw.githubusercontent.com/Ajie1705/otomatisasi-form/main/version.json"
 URL_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSfySHOBNRGk5fnY-m-nlQCZylNV7dSM_REBZl3mvpM-Vqxq6w/formResponse"
 
@@ -67,8 +67,8 @@ def lakukan_update(url_download):
     except Exception as e:
         messagebox.showerror("Error Update", f"Gagal melakukan pembaruan otomatis: {e}")
 
-def kirim_data_grup(grup_pilihan):
-    hari_ini = datetime.now()
+def buka_jendela_kehadiran(grup_pilihan):
+    """Membuka pop-up daftar absen sebelum mengirim data"""
     script_dir = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, 'frozen', False) else __file__))
     db_path = os.path.join(script_dir, "data_pengguna.json")
 
@@ -76,20 +76,64 @@ def kirim_data_grup(grup_pilihan):
         with open(db_path, "r") as f:
             semua_grup = json.load(f)
     except Exception as e:
-        messagebox.showerror("Error", f"Gagal membaca file database_pengguna.json:\n{e}")
-        return
-
-    if grup_pilihan not in semua_grup:
-        messagebox.showerror("Error", f"Data untuk Grup {grup_pilihan} tidak ditemukan di database.")
+        messagebox.showerror("Error", f"Gagal membaca database:\n{e}")
         return
 
     daftar_pengguna = semua_grup[grup_pilihan]
     
-    # Nonaktifkan tombol sementara proses berjalan
-    for btn in [btn_a, btn_b, btn_c, btn_d]:
-        btn.config(state=tk.DISABLED)
-    lbl_status.config(text=f"Sedang mengirim data Grup {grup_pilihan} ({len(daftar_pengguna)} orang)...")
-    root.update()
+    # 1. Membuat Jendela Pop-up (Toplevel)
+    jendela_absen = tk.Toplevel(root)
+    jendela_absen.title(f"Konfirmasi Kehadiran - Grup {grup_pilihan}")
+    jendela_absen.geometry("350x500") # Dibuat lebih tinggi agar muat 14 nama
+    
+    lbl_info = tk.Label(jendela_absen, text="Hapus centang bagi personel yang cuti/sakit/dispensasi:", font=("Arial", 9, "bold"))
+    lbl_info.pack(pady=10)
+
+    # 2. Membuat tempat penyimpanan status centang untuk setiap orang
+    # Kita menggunakan list kosong yang akan diisi pasangan (data_orang, variabel_status)
+    status_kehadiran = []
+
+    # 3. Membuat Checkbox secara dinamis berdasarkan data JSON
+    for pengguna in daftar_pengguna:
+        var_status = tk.BooleanVar(value=True) # Default: True (Tercentang / Hadir)
+        
+        chk = tk.Checkbutton(
+            jendela_absen, 
+            text=pengguna["nama"], 
+            variable=var_status,
+            font=("Arial", 9),
+            anchor="w"
+        )
+        chk.pack(fill="x", padx=30)
+        
+        # Simpan ke memori agar nanti bisa dicek saat tombol ditekan
+        status_kehadiran.append((pengguna, var_status))
+
+    # 4. Tombol Eksekusi Final
+    btn_kirim = tk.Button(
+        jendela_absen, 
+        text="KIRIM DATA HADIR", 
+        font=("Arial", 10, "bold"), 
+        bg="#4CAF50", fg="black", 
+        command=lambda: eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen)
+    )
+    btn_kirim.pack(pady=20)
+
+
+def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen):
+    """Melakukan pengiriman HTTP request hanya untuk yang tercentang"""
+    hari_ini = datetime.now()
+    
+    # Kumpulkan hanya orang yang variabel statusnya True (dicentang)
+    pengguna_hadir = [orang for orang, var_status in status_kehadiran if var_status.get() == True]
+    
+    if len(pengguna_hadir) == 0:
+        messagebox.showwarning("Peringatan", "Tidak ada personel yang dipilih!")
+        return
+
+    # Nonaktifkan jendela absen sementara proses berjalan
+    jendela_absen.title("Sedang mengirim...")
+    jendela_absen.update()
 
     sukses = 0
     gagal = 0
@@ -129,10 +173,8 @@ def kirim_data_grup(grup_pilihan):
                 sukses += 1
             else:
                 gagal += 1
-                print(f"Status Code Error: {res.status_code}") # Untuk melacak status HTTP
-        except Exception as e:
+        except:
             gagal += 1
-            print(f"Exception Error: {e}") # Untuk melacak error kodingan/jaringan
             
         time.sleep(0.5)
 
@@ -152,16 +194,16 @@ if __name__ == "__main__":
     lbl_judul = tk.Label(root, text="Pilih Grup Kerja:", font=("Arial", 12, "bold"))
     lbl_judul.pack(pady=15)
 
-    btn_a = tk.Button(root, text="GRUP A", font=("Arial", 10, "bold"), bg="#4CAF50", fg="black", width=20, height=2, command=lambda: kirim_data_grup("A"))
+    btn_a = tk.Button(root, text="GRUP A", font=("Arial", 10, "bold"), bg="#4CAF50", fg="black", width=20, height=2, command=lambda: buka_jendela_kehadiran("A"))
     btn_a.pack(pady=5)
 
-    btn_b = tk.Button(root, text="GRUP B", font=("Arial", 10, "bold"), bg="#2196F3", fg="black", width=20, height=2, command=lambda: kirim_data_grup("B"))
+    btn_b = tk.Button(root, text="GRUP B", font=("Arial", 10, "bold"), bg="#2196F3", fg="black", width=20, height=2, command=lambda: buka_jendela_kehadiran("B"))
     btn_b.pack(pady=5)
 
-    btn_c = tk.Button(root, text="GRUP C", font=("Arial", 10, "bold"), bg="#FF9800", fg="black", width=20, height=2, command=lambda: kirim_data_grup("C"))
+    btn_c = tk.Button(root, text="GRUP C", font=("Arial", 10, "bold"), bg="#FF9800", fg="black", width=20, height=2, command=lambda: buka_jendela_kehadiran("C"))
     btn_c.pack(pady=5)
 
-    btn_d = tk.Button(root, text="GRUP D", font=("Arial", 10, "bold"), bg="purple", fg="black", width=20, height=2, command=lambda: kirim_data_grup("D"))
+    btn_d = tk.Button(root, text="GRUP D", font=("Arial", 10, "bold"), bg="purple", fg="black", width=20, height=2, command=lambda: buka_jendela_kehadiran("D"))
     btn_d.pack(pady=5)
 
     lbl_status = tk.Label(root, text="Status: Menunggu pilihan...", font=("Arial", 9), fg="gray")
