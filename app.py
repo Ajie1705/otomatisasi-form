@@ -129,8 +129,10 @@ def kirim_data_grup(grup_pilihan):
                 sukses += 1
             else:
                 gagal += 1
-        except:
+                print(f"Status Code Error: {res.status_code}") # Untuk melacak status HTTP
+        except Exception as e:
             gagal += 1
+            print(f"Exception Error: {e}") # Untuk melacak error kodingan/jaringan
             
         time.sleep(0.5)
 
