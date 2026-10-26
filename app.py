@@ -4,6 +4,7 @@ import time
 import os
 import sys
 import subprocess
+import tempfile
 from datetime import datetime
 import tkinter as tk
 from tkinter import messagebox
@@ -43,14 +44,16 @@ def lakukan_update(url_download):
         
         messagebox.showinfo("Update", "Mengunduh pembaruan, aplikasi akan dimulai ulang setelah selesai.")
         
-        exe_baru_path = os.path.join(os.environ['TEMP'], "app_update.exe")
+        folder_temp = tempfile.gettempdir()
+        
+        exe_baru_path = os.path.join(folder_temp, "app_update.exe")
         r = requests.get(url_download, stream=True)
         with open(exe_baru_path, 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
                 
         exe_lama_path = sys.executable
-        bat_path = os.path.join(os.environ['TEMP'], "update.bat")
+        bat_path = os.path.join(folder_temp, "update.bat")
         with open(bat_path, "w") as bat_file:
             bat_file.write(f"""
             @echo off
