@@ -40,8 +40,7 @@ def cek_pembaruan():
 def lakukan_update(url_download):
     """Mengunduh .exe baru dan memperbaruinya secara otomatis di Windows"""
     try:
-        msg_temp = tk.Tk()
-        msg_temp.withdraw()
+        
         messagebox.showinfo("Update", "Mengunduh pembaruan, aplikasi akan dimulai ulang setelah selesai.")
         
         exe_baru_path = os.path.join(os.environ['TEMP'], "app_update.exe")
@@ -235,9 +234,14 @@ def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen):
     messagebox.showinfo("Selesai", f"Laporan Grup {grup_pilihan}:\nSusulan Sukses: {sukses}\nGagal: {gagal}")
 
 if __name__ == "__main__":
-    cek_pembaruan()
-    
+
     root = tk.Tk()
+    root.withdraw()
+    
+    cek_pembaruan()
+    sinkronisasi_database()
+
+    root.deiconify()
     root.title("Otomatisasi Pengisian DCU Form (v" + VERSI_LOKAL + ")")
     root.geometry("410x350")
     root.resizable(False, False)
