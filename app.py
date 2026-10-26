@@ -65,6 +65,11 @@ if exist "{exe_lama_path}" (
     goto loop
 )
 move /y "{exe_baru_path}" "{exe_lama_path}"
+timeout /t 1 /nobreak > nul
+cd /d "{dir_exe}"
+:: BARIS PERBAIKAN: Menghapus variabel warisan PyInstaller
+set _MEIPASS2=
+set _MEIPASS=
 start "" "{exe_lama_path}"
 del "%~f0"
 """)
@@ -77,6 +82,8 @@ del "%~f0"
         
     except Exception as e:
         messagebox.showerror("Error Update", f"Gagal melakukan pembaruan otomatis: {e}")
+
+        
 def sinkronisasi_database():
     """Menarik data_pengguna.json terbaru dari GitHub setiap kali aplikasi dibuka"""
     # Ganti URL di bawah dengan URL 'raw' file data_pengguna.json Anda di GitHub
