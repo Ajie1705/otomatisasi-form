@@ -10,7 +10,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 # --- KONFIGURASI (SESUAIKAN USERNAME & REPO ANDA) ---
-VERSI_LOKAL = "1.1.4"
+VERSI_LOKAL = "1.1.5"
 URL_VERSION_JSON = "https://raw.githubusercontent.com/Ajie1705/otomatisasi-form/main/version.json"
 URL_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSfySHOBNRGk5fnY-m-nlQCZylNV7dSM_REBZl3mvpM-Vqxq6w/formResponse"
 
@@ -41,34 +41,42 @@ def cek_pembaruan():
 def lakukan_update(url_download):
     """Mengunduh .exe baru dan memperbaruinya secara otomatis di Windows"""
     try:
-        
-        messagebox.showinfo("Update", "Mengunduh pembaruan, aplikasi akan dimulai ulang setelah selesai.")
+        messagebox.showinfo("Update", "Mengunduh pembaruan, aplikasi akan ditutup sementara untuk proses instalasi.")
         
         folder_temp = tempfile.gettempdir()
-        
         exe_baru_path = os.path.join(folder_temp, "app_update.exe")
+        
         r = requests.get(url_download, stream=True)
         with open(exe_baru_path, 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
                 
         exe_lama_path = sys.executable
+        
         bat_path = os.path.join(folder_temp, "update.bat")
         with open(bat_path, "w") as bat_file:
-            bat_file.write(f"""
-            @echo off
-            timeout /t 2 /nobreak > nul
-            del /f /q "{exe_lama_path}"
-            move /y "{exe_baru_path}" "{exe_lama_path}"
-            start "" "{exe_lama_path}"
-            del "%~f0"
-            """)
+            # Skrip .bat ini dibuat lebih pintar menggunakan sistem LOOP (pengulangan)
+            bat_file.write(f"""@echo off
+timeout /t 2 /nobreak > nul
+:loop
+del /f /q "{exe_lama_path}"
+if exist "{exe_lama_path}" (
+    timeout /t 1 /nobreak > nul
+    goto loop
+)
+move /y "{exe_baru_path}" "{exe_lama_path}"
+start "" "{exe_lama_path}"
+del "%~f0"
+""")
             
         subprocess.Popen(bat_path, shell=True)
-        sys.exit(0)
+        
+        # PERBAIKAN FATAL: Membunuh paksa proses ke akar sistem operasi
+        # sehingga tidak tertangkap oleh try...except dan melepaskan File Lock Windows
+        os._exit(0) 
+        
     except Exception as e:
         messagebox.showerror("Error Update", f"Gagal melakukan pembaruan otomatis: {e}")
-
 def sinkronisasi_database():
     """Menarik data_pengguna.json terbaru dari GitHub setiap kali aplikasi dibuka"""
     # Ganti URL di bawah dengan URL 'raw' file data_pengguna.json Anda di GitHub
