@@ -205,12 +205,16 @@ def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen):
     messagebox.showinfo("Informasi", f"Pengiriman Grup {grup_pilihan} Selesai!\nSukses: {sukses}\nGagal: {gagal}")
 
 if __name__ == "__main__":
+
+    root = tk.Tk()
+    root.withdraw()
+
     cek_pembaruan()
     sinkronisasi_database()
-    
-    root = tk.Tk()
+
+    root.deiconify()
     root.title("Otomatisasi Pengisian DCU Form (v" + VERSI_LOKAL + ")")
-    root.geometry("380x330")
+    root.geometry("400x350")
     root.resizable(False, False)
 
     lbl_judul = tk.Label(root, text="Pilih Grup Kerja:", font=("Arial", 12, "bold"))
