@@ -66,7 +66,7 @@ def lakukan_update(url_download):
         sys.exit(0)
     except Exception as e:
         messagebox.showerror("Error Update", f"Gagal melakukan pembaruan otomatis: {e}")
-        
+
 def sinkronisasi_database():
     """Menarik data_pengguna.json terbaru dari GitHub setiap kali aplikasi dibuka"""
     # Ganti URL di bawah dengan URL 'raw' file data_pengguna.json Anda di GitHub
@@ -89,9 +89,9 @@ def sinkronisasi_database():
         pass
 
 def buka_jendela_kehadiran(grup_pilihan):
-    """Membuka pop-up daftar absen sebelum mengirim data"""
     script_dir = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, 'frozen', False) else __file__))
     db_path = os.path.join(script_dir, "data_pengguna.json")
+    riwayat_path = os.path.join(script_dir, "riwayat.json")
 
     try:
         with open(db_path, "r") as f:
@@ -101,36 +101,55 @@ def buka_jendela_kehadiran(grup_pilihan):
         return
 
     daftar_pengguna = semua_grup[grup_pilihan]
+    tanggal_hari_ini = datetime.now().strftime("%Y-%m-%d")
     
-    # 1. Membuat Jendela Pop-up (Toplevel)
+    # Baca riwayat lokal untuk mengecek NIK siapa saja yang sudah terkirim hari ini
+    riwayat = {}
+    if os.path.exists(riwayat_path):
+        with open(riwayat_path, "r") as f:
+            riwayat = json.load(f)
+
+    # Mengecek apakah SEMUA orang di grup ini sudah terkirim
+    sudah_terkirim_semua = all(riwayat.get(p["nik"]) == tanggal_hari_ini for p in daftar_pengguna)
+    if sudah_terkirim_semua:
+        messagebox.showinfo("Info", f"Seluruh personel Grup {grup_pilihan} sudah mengisi form untuk hari ini.")
+        return # Hentikan proses, tidak perlu membuka pop-up
+
     jendela_absen = tk.Toplevel(root)
     jendela_absen.title(f"Konfirmasi Kehadiran - Grup {grup_pilihan}")
-    jendela_absen.geometry("350x500") # Dibuat lebih tinggi agar muat 14 nama
+    jendela_absen.geometry("380x500")
     
-    lbl_info = tk.Label(jendela_absen, text="Hapus centang bagi personel yang cuti/sakit/dispensasi:", font=("Arial", 9, "bold"))
+    lbl_info = tk.Label(jendela_absen, text="Centang hanya personel yang akan disubmit:", font=("Arial", 9, "bold"))
     lbl_info.pack(pady=10)
 
-    # 2. Membuat tempat penyimpanan status centang untuk setiap orang
-    # Kita menggunakan list kosong yang akan diisi pasangan (data_orang, variabel_status)
     status_kehadiran = []
 
-    # 3. Membuat Checkbox secara dinamis berdasarkan data JSON
     for pengguna in daftar_pengguna:
-        var_status = tk.BooleanVar(value=True) # Default: True (Tercentang / Hadir)
+        # Cek apakah NIK ini sudah dikirim hari ini
+        sudah_dikirim = (riwayat.get(pengguna["nik"]) == tanggal_hari_ini)
+        
+        # Jika sudah dikirim, defaultnya False (hapus centang). Jika belum, True (dicentang otomatis)
+        var_status = tk.BooleanVar(value=not sudah_dikirim)
+        
+        # Tambahkan teks penanda jika sudah terkirim
+        teks_label = pengguna["nama"] + ("  (Sudah Terkirim)" if sudah_dikirim else "")
         
         chk = tk.Checkbutton(
             jendela_absen, 
-            text=pengguna["nama"], 
+            text=teks_label, 
             variable=var_status,
             font=("Arial", 9),
             anchor="w"
         )
+        
+        # Kunci tombol (disabled) jika orang tersebut sudah pernah terkirim hari ini
+        if sudah_dikirim:
+            chk.config(state="disabled", fg="gray")
+            
         chk.pack(fill="x", padx=30)
         
-        # Simpan ke memori agar nanti bisa dicek saat tombol ditekan
         status_kehadiran.append((pengguna, var_status))
 
-    # 4. Tombol Eksekusi Final
     btn_kirim = tk.Button(
         jendela_absen, 
         text="KIRIM DATA HADIR", 
@@ -142,19 +161,26 @@ def buka_jendela_kehadiran(grup_pilihan):
 
 
 def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen):
-    """Melakukan pengiriman HTTP request hanya untuk yang tercentang"""
     hari_ini = datetime.now()
+    tanggal_hari_ini = hari_ini.strftime("%Y-%m-%d")
     
-    # Kumpulkan hanya orang yang variabel statusnya True (dicentang)
+    # Saring HANYA personel yang kotak centangnya bernilai True
     pengguna_hadir = [orang for orang, var_status in status_kehadiran if var_status.get() == True]
     
     if len(pengguna_hadir) == 0:
-        messagebox.showwarning("Peringatan", "Tidak ada personel yang dipilih!")
+        messagebox.showwarning("Peringatan", "Tidak ada personel baru yang dipilih untuk disubmit!")
         return
 
-    # Nonaktifkan jendela absen sementara proses berjalan
     jendela_absen.title("Sedang mengirim...")
     jendela_absen.update()
+
+    script_dir = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, 'frozen', False) else __file__))
+    riwayat_path = os.path.join(script_dir, "riwayat.json")
+    
+    riwayat = {}
+    if os.path.exists(riwayat_path):
+        with open(riwayat_path, "r") as f:
+            riwayat = json.load(f)
 
     sukses = 0
     gagal = 0
@@ -190,8 +216,10 @@ def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen):
 
         try:
             res = requests.post(URL_FORM, data=payload, headers=HEADERS)
+            # Jika Google merespons sukses, langsung catat NIK-nya
             if res.status_code == 200:
                 sukses += 1
+                riwayat[pengguna["nik"]] = tanggal_hari_ini
             else:
                 gagal += 1
         except:
@@ -199,22 +227,19 @@ def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen):
             
         time.sleep(0.5)
 
-    for btn in [btn_a, btn_b, btn_c, btn_d]:
-        btn.config(state=tk.NORMAL)
-    lbl_status.config(text="Selesai!")
-    messagebox.showinfo("Informasi", f"Pengiriman Grup {grup_pilihan} Selesai!\nSukses: {sukses}\nGagal: {gagal}")
+    # Simpan kembali seluruh catatan keberhasilan (lama + baru) ke dalam file riwayat.json
+    with open(riwayat_path, "w") as f:
+        json.dump(riwayat, f)
+
+    jendela_absen.destroy()
+    messagebox.showinfo("Selesai", f"Laporan Grup {grup_pilihan}:\nSusulan Sukses: {sukses}\nGagal: {gagal}")
 
 if __name__ == "__main__":
-
-    root = tk.Tk()
-    root.withdraw()
-
     cek_pembaruan()
-    sinkronisasi_database()
-
-    root.deiconify()
+    
+    root = tk.Tk()
     root.title("Otomatisasi Pengisian DCU Form (v" + VERSI_LOKAL + ")")
-    root.geometry("400x350")
+    root.geometry("380x330")
     root.resizable(False, False)
 
     lbl_judul = tk.Label(root, text="Pilih Grup Kerja:", font=("Arial", 12, "bold"))
