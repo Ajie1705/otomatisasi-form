@@ -69,7 +69,7 @@ def lakukan_update(url_download):
 def sinkronisasi_database():
     """Menarik data_pengguna.json terbaru dari GitHub setiap kali aplikasi dibuka"""
     # Ganti URL di bawah dengan URL 'raw' file data_pengguna.json Anda di GitHub
-    url_db_github = "https://raw.githubusercontent.com/username/otomatisasi-form/main/data_pengguna.json"
+    url_db_github = "https://raw.githubusercontent.com/Ajie1705/otomatisasi-form/main/data_pengguna.json"
     
     script_dir = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, 'frozen', False) else __file__))
     db_path = os.path.join(script_dir, "data_pengguna.json")
