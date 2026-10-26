@@ -10,7 +10,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 # --- KONFIGURASI (SESUAIKAN USERNAME & REPO ANDA) ---
-VERSI_LOKAL = "1.1.7"
+VERSI_LOKAL = "1.1.8"
 URL_VERSION_JSON = "https://raw.githubusercontent.com/Ajie1705/otomatisasi-form/main/version.json"
 URL_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSfySHOBNRGk5fnY-m-nlQCZylNV7dSM_REBZl3mvpM-Vqxq6w/formResponse"
 
@@ -52,7 +52,6 @@ def lakukan_update(url_download):
                 f.write(chunk)
                 
         exe_lama_path = sys.executable
-        # Mendapatkan lokasi folder tempat .exe berada
         dir_exe = os.path.dirname(exe_lama_path)
         
         bat_path = os.path.join(folder_temp, "update.bat")
@@ -68,14 +67,18 @@ if exist "{exe_lama_path}" (
 move /y "{exe_baru_path}" "{exe_lama_path}"
 timeout /t 1 /nobreak > nul
 cd /d "{dir_exe}"
-:: BARIS PERBAIKAN: Menghapus variabel warisan PyInstaller
-set _MEIPASS2=
-set _MEIPASS=
 start "" "{exe_lama_path}"
 del "%~f0"
 """)
+        
+        # PERBAIKAN FINAL: Memotong memori warisan PyInstaller langsung dari Python
+        env_bersih = os.environ.copy()
+        env_bersih.pop('_MEIPASS2', None)
+        env_bersih.pop('_MEIPASS', None)
+        env_bersih.pop('_PYI_PROGNAME', None)
             
-        subprocess.Popen(bat_path, shell=True)
+        # Mengeksekusi file .bat menggunakan memori (env) yang sudah dibersihkan
+        subprocess.Popen(bat_path, shell=True, env=env_bersih)
         os._exit(0) 
         
     except Exception as e:
