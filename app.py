@@ -66,6 +66,27 @@ def lakukan_update(url_download):
         sys.exit(0)
     except Exception as e:
         messagebox.showerror("Error Update", f"Gagal melakukan pembaruan otomatis: {e}")
+        
+def sinkronisasi_database():
+    """Menarik data_pengguna.json terbaru dari GitHub setiap kali aplikasi dibuka"""
+    # Ganti URL di bawah dengan URL 'raw' file data_pengguna.json Anda di GitHub
+    url_db_github = "https://raw.githubusercontent.com/username/otomatisasi-form/main/data_pengguna.json"
+    
+    script_dir = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, 'frozen', False) else __file__))
+    db_path = os.path.join(script_dir, "data_pengguna.json")
+    
+    try:
+        # Mengunduh data json terbaru
+        res = requests.get(url_db_github, timeout=5)
+        
+        # Jika berhasil mengunduh (Status 200), timpa file lokal yang lama
+        if res.status_code == 200:
+            with open(db_path, "w") as f:
+                f.write(res.text)
+    except:
+        # Jika tidak ada internet saat aplikasi baru dibuka, abaikan error
+        # dan gunakan file data_pengguna.json sisa kemarin (mode fallback)
+        pass
 
 def buka_jendela_kehadiran(grup_pilihan):
     """Membuka pop-up daftar absen sebelum mengirim data"""
@@ -185,6 +206,7 @@ def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen):
 
 if __name__ == "__main__":
     cek_pembaruan()
+    sinkronisasi_database()
     
     root = tk.Tk()
     root.title("Otomatisasi Pengisian DCU Form (v" + VERSI_LOKAL + ")")
