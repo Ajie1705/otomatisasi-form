@@ -52,10 +52,11 @@ def lakukan_update(url_download):
                 f.write(chunk)
                 
         exe_lama_path = sys.executable
+        # Mendapatkan lokasi folder tempat .exe berada
+        dir_exe = os.path.dirname(exe_lama_path)
         
         bat_path = os.path.join(folder_temp, "update.bat")
         with open(bat_path, "w") as bat_file:
-            # Skrip .bat ini dibuat lebih pintar menggunakan sistem LOOP (pengulangan)
             bat_file.write(f"""@echo off
 timeout /t 2 /nobreak > nul
 :loop
@@ -75,9 +76,6 @@ del "%~f0"
 """)
             
         subprocess.Popen(bat_path, shell=True)
-        
-        # PERBAIKAN FATAL: Membunuh paksa proses ke akar sistem operasi
-        # sehingga tidak tertangkap oleh try...except dan melepaskan File Lock Windows
         os._exit(0) 
         
     except Exception as e:
