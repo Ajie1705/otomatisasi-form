@@ -9,7 +9,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 # --- KONFIGURASI (SESUAIKAN USERNAME & REPO ANDA) ---
-VERSI_LOKAL = "1.1.1"
+VERSI_LOKAL = "1.1.2"
 URL_VERSION_JSON = "https://raw.githubusercontent.com/Ajie1705/otomatisasi-form/main/version.json"
 URL_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSfySHOBNRGk5fnY-m-nlQCZylNV7dSM_REBZl3mvpM-Vqxq6w/formResponse"
 
@@ -159,7 +159,7 @@ def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen):
     sukses = 0
     gagal = 0
 
-    for pengguna in daftar_pengguna:
+    for pengguna in pengguna_hadir:
         payload = {
         "entry.1146271895_year": str(hari_ini.year),
         "entry.1146271895_month": str(hari_ini.month),
