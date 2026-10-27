@@ -46,14 +46,15 @@ def lakukan_update(url_download):
         folder_temp = tempfile.gettempdir()
         exe_baru_path = os.path.join(folder_temp, "app_update.exe")
         
+        # 1. Mengunduh file baru
         r = requests.get(url_download, stream=True)
         with open(exe_baru_path, 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
                 
         exe_lama_path = sys.executable
-        dir_exe = os.path.dirname(exe_lama_path)
         
+        # 2. Membuat file .bat (Sama seperti sebelumnya)
         bat_path = os.path.join(folder_temp, "update.bat")
         with open(bat_path, "w") as bat_file:
             bat_file.write(f"""@echo off
@@ -66,19 +67,20 @@ if exist "{exe_lama_path}" (
 )
 move /y "{exe_baru_path}" "{exe_lama_path}"
 timeout /t 1 /nobreak > nul
-cd /d "{dir_exe}"
 start "" "{exe_lama_path}"
 del "%~f0"
 """)
+
+        # 3. PERBAIKAN FINAL: Membuat file jembatan VBScript
+        vbs_path = os.path.join(folder_temp, "launcher.vbs")
+        with open(vbs_path, "w") as vbs_file:
+            # Kode ini memastikan .bat berjalan terpisah (0 = hidden window)
+            vbs_file.write(f'CreateObject("Wscript.Shell").Run """" & "{bat_path}" & """", 0, False')
         
-        # PERBAIKAN FINAL: Memotong memori warisan PyInstaller langsung dari Python
-        env_bersih = os.environ.copy()
-        env_bersih.pop('_MEIPASS2', None)
-        env_bersih.pop('_MEIPASS', None)
-        env_bersih.pop('_PYI_PROGNAME', None)
-            
-        # Mengeksekusi file .bat menggunakan memori (env) yang sudah dibersihkan
-        subprocess.Popen(bat_path, shell=True, env=env_bersih)
+        # 4. Mengeksekusi file VBScript, BUKAN file .bat
+        os.startfile(vbs_path)
+        
+        # 5. Mematikan Python seketika
         os._exit(0) 
         
     except Exception as e:
