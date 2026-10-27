@@ -170,27 +170,33 @@ def buka_jendela_kehadiran(grup_pilihan):
         
         status_kehadiran.append((pengguna, var_status))
 
+    # 4. Membuat tombol tanpa command terlebih dahulu
     btn_kirim = tk.Button(
         jendela_absen, 
         text="KIRIM DATA HADIR", 
         font=("Arial", 10, "bold"), 
-        bg="#4CAF50", fg="black", 
-        command=lambda: eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen)
+        bg="#4CAF50", fg="black"
     )
+    
+    # Memasukkan command setelah tombol tercipta, dan menyisipkan 'btn_kirim' sebagai parameter
+    btn_kirim.config(command=lambda: eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen, btn_kirim))
     btn_kirim.pack(pady=20)
 
 
-def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen):
+# Tambahkan btn_kirim di ujung parameter
+def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen, btn_kirim):
     hari_ini = datetime.now()
     tanggal_hari_ini = hari_ini.strftime("%Y-%m-%d")
     
-    # Saring HANYA personel yang kotak centangnya bernilai True
     pengguna_hadir = [orang for orang, var_status in status_kehadiran if var_status.get() == True]
     
     if len(pengguna_hadir) == 0:
         messagebox.showwarning("Peringatan", "Tidak ada personel baru yang dipilih untuk disubmit!")
         return
 
+    # --- BARIS PERBAIKAN: Mematikan tombol dan mengubah warnanya ---
+    btn_kirim.config(state="disabled", text="SEDANG MENGIRIM...", bg="gray")
+    
     jendela_absen.title("Sedang mengirim...")
     jendela_absen.update()
 
