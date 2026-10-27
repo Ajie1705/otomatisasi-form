@@ -173,7 +173,7 @@ def buka_jendela_kehadiran(grup_pilihan):
     # 4. Membuat tombol tanpa command terlebih dahulu
     btn_kirim = tk.Button(
         jendela_absen, 
-        text="KIRIM DATA HADIR", 
+        text="KIRIM DATA DCU", 
         font=("Arial", 10, "bold"), 
         bg="#4CAF50", fg="black"
     )
