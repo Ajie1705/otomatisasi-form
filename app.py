@@ -5,6 +5,7 @@ import os
 import sys
 import subprocess
 import tempfile
+import shutil
 from datetime import datetime
 import tkinter as tk
 from tkinter import messagebox
@@ -39,52 +40,44 @@ def cek_pembaruan():
         pass
 
 def lakukan_update(url_download):
-    """Mengunduh .exe baru dan memperbaruinya secara otomatis di Windows"""
+    """Mengunduh .exe baru dan memperbaruinya secara otomatis tanpa file .bat"""
     try:
-        messagebox.showinfo("Update", "Mengunduh pembaruan, aplikasi akan ditutup sementara untuk proses instalasi.")
+        messagebox.showinfo("Update", "Mengunduh pembaruan, aplikasi akan di-restart otomatis.")
         
         folder_temp = tempfile.gettempdir()
-        exe_baru_path = os.path.join(folder_temp, "app_update.exe")
+        exe_baru_temp = os.path.join(folder_temp, "app_downloaded.exe")
         
-        # 1. Mengunduh file baru
+        # 1. Unduh file baru ke folder Temp
         r = requests.get(url_download, stream=True)
-        with open(exe_baru_path, 'wb') as f:
+        with open(exe_baru_temp, 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
                 
         exe_lama_path = sys.executable
+        dir_exe = os.path.dirname(exe_lama_path)
         
-        # 2. Membuat file .bat (Sama seperti sebelumnya)
-        bat_path = os.path.join(folder_temp, "update.bat")
-        with open(bat_path, "w") as bat_file:
-            bat_file.write(f"""@echo off
-timeout /t 2 /nobreak > nul
-:loop
-del /f /q "{exe_lama_path}"
-if exist "{exe_lama_path}" (
-    timeout /t 1 /nobreak > nul
-    goto loop
-)
-move /y "{exe_baru_path}" "{exe_lama_path}"
-timeout /t 1 /nobreak > nul
-start "" "{exe_lama_path}"
-del "%~f0"
-""")
-
-        # 3. PERBAIKAN FINAL: Membuat file jembatan VBScript
-        vbs_path = os.path.join(folder_temp, "launcher.vbs")
-        with open(vbs_path, "w") as vbs_file:
-            # Kode ini memastikan .bat berjalan terpisah (0 = hidden window)
-            vbs_file.write(f'CreateObject("Wscript.Shell").Run """" & "{bat_path}" & """", 0, False')
+        # 2. Ubah nama aplikasi yang sedang berjalan menjadi file "buangan"
+        # Windows mengizinkan ini meskipun aplikasi sedang aktif
+        exe_buangan = os.path.join(dir_exe, f"hapus_saya_{int(time.time())}.exe")
+        os.rename(exe_lama_path, exe_buangan)
         
-        # 4. Mengeksekusi file VBScript, BUKAN file .bat
-        os.startfile(vbs_path)
+        # 3. Pindahkan file unduhan baru ke posisi/nama aplikasi asli
+        shutil.move(exe_baru_temp, exe_lama_path)
         
-        # 5. Mematikan Python seketika
+        # 4. Hapus paksa memori warisan PyInstaller
+        env_bersih = os.environ.copy()
+        env_bersih.pop('_MEIPASS2', None)
+        env_bersih.pop('_MEIPASS', None)
+        env_bersih.pop('_PYI_PROGNAME', None)
+        
+        # 5. Jalankan aplikasi baru SECARA LANGSUNG, tanpa lewat CMD/Shell
+        subprocess.Popen([exe_lama_path], env=env_bersih)
+        
+        # 6. Matikan aplikasi lama seketika
         os._exit(0) 
         
     except Exception as e:
-        messagebox.showerror("Error Update", f"Gagal melakukan pembaruan otomatis: {e}")
+        messagebox.showerror("Error Update", f"Gagal melakukan pembaruan otomatis:\n{e}")
 
         
 def sinkronisasi_database():
@@ -260,10 +253,27 @@ def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen, btn_kirim):
     jendela_absen.destroy()
     messagebox.showinfo("Selesai", f"Laporan Grup {grup_pilihan}:\nSusulan Sukses: {sukses}\nGagal: {gagal}")
 
+def bersihkan_sampah_update():
+    """Mencari dan menghapus file .exe lama hasil rename"""
+    try:
+        # Hanya jalankan jika program berupa file .exe
+        if getattr(sys, 'frozen', False):
+            dir_exe = os.path.dirname(sys.executable)
+            for file in os.listdir(dir_exe):
+                if file.startswith("hapus_saya_") and file.endswith(".exe"):
+                    try:
+                        os.remove(os.path.join(dir_exe, file))
+                    except:
+                        pass
+    except:
+        pass
+
 if __name__ == "__main__":
 
     root = tk.Tk()
     root.withdraw()
+
+    bersihkan_sampah_update()
     
     cek_pembaruan()
     sinkronisasi_database()
