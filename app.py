@@ -11,7 +11,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 # --- KONFIGURASI (SESUAIKAN USERNAME & REPO ANDA) ---
-VERSI_LOKAL = "1.2.3"
+VERSI_LOKAL = "1.2.4"
 URL_VERSION_JSON = "https://raw.githubusercontent.com/Ajie1705/otomatisasi-form/main/version.json"
 URL_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSfySHOBNRGk5fnY-m-nlQCZylNV7dSM_REBZl3mvpM-Vqxq6w/formResponse"
 
@@ -71,8 +71,12 @@ def lakukan_update(url_download):
         env_bersih.pop('_PYI_PROGNAME', None)
         
         # 5. Jalankan aplikasi baru SECARA LANGSUNG, tanpa lewat CMD/Shell
-        subprocess.Popen([exe_lama_path], env=env_bersih)
-        
+        subprocess.Popen(
+            [exe_lama_path], 
+            env=env_bersih, 
+            creationflags=0x00000008, 
+            close_fds=True
+        )        
         # 6. Matikan aplikasi lama seketika
         os._exit(0) 
         
