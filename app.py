@@ -40,14 +40,14 @@ def cek_pembaruan():
         pass
 
 def lakukan_update(url_download):
-    """Mengunduh .exe baru dan memperbaruinya secara otomatis tanpa file .bat"""
+    """Mengunduh .exe baru dan memperbaruinya dengan metode Rename + Jeda Waktu"""
     try:
         messagebox.showinfo("Update", "Mengunduh pembaruan, aplikasi akan di-restart otomatis.")
         
         folder_temp = tempfile.gettempdir()
         exe_baru_temp = os.path.join(folder_temp, "app_downloaded.exe")
         
-        # 1. Unduh file baru ke folder Temp
+        # 1. Unduh file baru ke Temp
         r = requests.get(url_download, stream=True)
         with open(exe_baru_temp, 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
@@ -56,27 +56,37 @@ def lakukan_update(url_download):
         exe_lama_path = sys.executable
         dir_exe = os.path.dirname(exe_lama_path)
         
-        # 2. Ubah nama aplikasi yang sedang berjalan menjadi file "buangan"
-        # Windows mengizinkan ini meskipun aplikasi sedang aktif
+        # 2. Metode Rename (Aman dari File Lock Windows)
         exe_buangan = os.path.join(dir_exe, f"hapus_saya_{int(time.time())}.exe")
         os.rename(exe_lama_path, exe_buangan)
-        
-        # 3. Pindahkan file unduhan baru ke posisi/nama aplikasi asli
         shutil.move(exe_baru_temp, exe_lama_path)
         
-        # 4. Hapus paksa memori warisan PyInstaller
+        # 3. Buat skrip peluncur sementara (Hanya untuk memberi jeda 2 detik)
+        bat_path = os.path.join(dir_exe, "launcher.bat")
+        with open(bat_path, "w") as bat_file:
+            bat_file.write(f"""@echo off
+timeout /t 2 /nobreak > nul
+start "" "{exe_lama_path}"
+del "%~f0"
+""")
+        
+        # 4. Bersihkan memori PyInstaller dari akar OS
         env_bersih = os.environ.copy()
         env_bersih.pop('_MEIPASS2', None)
         env_bersih.pop('_MEIPASS', None)
         env_bersih.pop('_PYI_PROGNAME', None)
         
-        # 5. Jalankan aplikasi baru SECARA LANGSUNG, tanpa lewat CMD/Shell
+        # 5. Jalankan skrip jeda SECARA TERSEMBUNYI (CREATE_NO_WINDOW = 0x08000000)
+        # Jeda 2 detik memastikan aplikasi lama SUDAH BENAR-BENAR MATI 
+        # dan Antivirus sudah selesai memindai sebelum aplikasi baru dibuka.
         subprocess.Popen(
-            [exe_lama_path], 
+            [bat_path], 
             env=env_bersih, 
-            creationflags=0x00000008, 
+            cwd=dir_exe, 
+            creationflags=0x08000000, 
             close_fds=True
-        )        
+        )
+        
         # 6. Matikan aplikasi lama seketika
         os._exit(0) 
         
