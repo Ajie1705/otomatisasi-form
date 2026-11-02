@@ -11,7 +11,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 # --- KONFIGURASI (SESUAIKAN USERNAME & REPO ANDA) ---
-VERSI_LOKAL = "1.2.5"
+VERSI_LOKAL = "1.2.6"
 URL_VERSION_JSON = "https://raw.githubusercontent.com/Ajie1705/otomatisasi-form/main/version.json"
 URL_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSfySHOBNRGk5fnY-m-nlQCZylNV7dSM_REBZl3mvpM-Vqxq6w/formResponse"
 
@@ -150,15 +150,13 @@ def buka_jendela_kehadiran(grup_pilihan):
     lbl_info.pack(pady=10)
 
     status_kehadiran = []
+    list_widget_checkbox = [] # <--- 1. TAMBAHKAN WADAH INI
 
     for pengguna in daftar_pengguna:
         # Cek apakah NIK ini sudah dikirim hari ini
         sudah_dikirim = (riwayat.get(pengguna["nik"]) == tanggal_hari_ini)
         
-        # Jika sudah dikirim, defaultnya False (hapus centang). Jika belum, True (dicentang otomatis)
         var_status = tk.BooleanVar(value=not sudah_dikirim)
-        
-        # Tambahkan teks penanda jika sudah terkirim
         teks_label = pengguna["nama"] + ("  (Sudah Terkirim)" if sudah_dikirim else "")
         
         chk = tk.Checkbutton(
@@ -169,15 +167,14 @@ def buka_jendela_kehadiran(grup_pilihan):
             anchor="w"
         )
         
-        # Kunci tombol (disabled) jika orang tersebut sudah pernah terkirim hari ini
         if sudah_dikirim:
             chk.config(state="disabled", fg="gray")
             
         chk.pack(fill="x", padx=30)
         
         status_kehadiran.append((pengguna, var_status))
+        list_widget_checkbox.append(chk) # <--- 2. MASUKKAN FISIK CHECKBOX KE WADAH
 
-    # 4. Membuat tombol tanpa command terlebih dahulu
     btn_kirim = tk.Button(
         jendela_absen, 
         text="KIRIM DATA DCU", 
@@ -185,13 +182,13 @@ def buka_jendela_kehadiran(grup_pilihan):
         bg="#4CAF50", fg="black"
     )
     
-    # Memasukkan command setelah tombol tercipta, dan menyisipkan 'btn_kirim' sebagai parameter
-    btn_kirim.config(command=lambda: eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen, btn_kirim))
+    # 3. SISIPKAN list_widget_checkbox KE PARAMETER PALING BELAKANG
+    btn_kirim.config(command=lambda: eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen, btn_kirim,           list_widget_checkbox))
     btn_kirim.pack(pady=20)
 
 
-# Tambahkan btn_kirim di ujung parameter
-def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen, btn_kirim):
+# 1. TAMBAHKAN list_widget_checkbox DI SINI
+def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen, btn_kirim, list_widget_checkbox):
     hari_ini = datetime.now()
     tanggal_hari_ini = hari_ini.strftime("%Y-%m-%d")
     
@@ -201,8 +198,12 @@ def eksekusi_kirim(grup_pilihan, status_kehadiran, jendela_absen, btn_kirim):
         messagebox.showwarning("Peringatan", "Tidak ada personel baru yang dipilih untuk disubmit!")
         return
 
-    # --- BARIS PERBAIKAN: Mematikan tombol dan mengubah warnanya ---
+    # Mematikan tombol kirim
     btn_kirim.config(state="disabled", text="SEDANG MENGIRIM...", bg="gray")
+    
+    # 2. TAMBAHKAN BARIS INI: Mematikan seluruh checkbox di layar
+    for chk in list_widget_checkbox:
+        chk.config(state="disabled")
     
     jendela_absen.title("Sedang mengirim...")
     jendela_absen.update()
